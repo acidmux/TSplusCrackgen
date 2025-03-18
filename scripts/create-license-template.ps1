@@ -6,8 +6,8 @@ Write-Host "Setting license expiration date to: $expirationDate"
 $licenseContent = @"
 ; Warning: any change in this file will invalidate this license
 [Main]
-ComputerID=<REPLACE_WITH_PLACEHOLDER>
-HardwareID=<REPLACE_WITH_PLACEHOLDER>
+ComputerID=<REPLACE_WITH_YOUR_COMPUTER_ID>
+HardwareID=<REPLACE_WITH_YOUR_HARDWARE_ID>
 
 [Product.Remote]
 Edition=Enterprise
@@ -34,7 +34,7 @@ Type=permanent
 Expires=$expirationDate
 
 [Signature]
-Signature=PLACEHOLDER_SIGNATURE
+Signature=<REPLACE_WITH_YOUR_SIGNATURE>
 "@
 
 # Save the license file
