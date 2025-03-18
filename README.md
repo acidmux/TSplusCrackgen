@@ -65,3 +65,7 @@ We welcome contributions to the TSplus Crackgen project! Please follow these gui
 3. **Code of Conduct**: Please be respectful and considerate in all interactions. We aim to create a welcoming environment for all contributors.
 
 Thank you for your interest in contributing to TSplus Crackgen!
+
+## 📚 References
+
+- [Qatch](https://github.com/acidmux/qatch) - Related project by acidmux

@@ -1,4 +1,4 @@
-$qatchRepo = "itsalfredakku/qatch"
+$qatchRepo = "acidmux/qatch"
 $qatchDir = "$env:TEMP\qatch"
 $qatchDll = "$qatchDir\qatch.dll"
 
