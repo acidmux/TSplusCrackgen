@@ -55,3 +55,13 @@ This project leverages GitHub Actions to automate the entire process of download
 - Binary patching using custom tools
 - Integrity check bypasses
 - Building structured release packages
+
+## 🤝 Contributing
+
+We welcome contributions to the TSplus Crackgen project! Please follow these guidelines to help us maintain a high-quality project:
+
+1. **Reporting Issues**: If you encounter any bugs or have suggestions for improvements, please use the issue templates provided in the `.github/ISSUE_TEMPLATE` directory.
+2. **Submitting Pull Requests**: When submitting a pull request, please ensure that your code adheres to the project's coding standards and includes appropriate tests.
+3. **Code of Conduct**: Please be respectful and considerate in all interactions. We aim to create a welcoming environment for all contributors.
+
+Thank you for your interest in contributing to TSplus Crackgen!
