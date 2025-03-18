@@ -1,0 +1,43 @@
+name: Check for Updates
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight
+  workflow_dispatch:
+
+jobs:
+  check-for-updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Get latest version
+        id: get_latest_version
+        run: |
+          LATEST_VERSION=$(curl -s 'https://dl-files.com/data/latestversion.txt')
+          echo "Latest Version: $LATEST_VERSION"
+          echo "::set-output name=latest_version::$LATEST_VERSION"
+
+      - name: Check if release exists
+        id: check_release
+        run: |
+          version=${{ steps.get_latest_version.outputs.latest_version }}
+          echo "Checking if release exists for version: $version"
+          release_exists=$(gh release view "v$version" --json tagName --jq '.tagName' || echo "false")
+          if [ "$release_exists" != "false" ]; then
+            echo "Release for version $version already exists"
+            echo "::set-output name=release_exists::true"
+          else
+            echo "No release found for version $version"
+            echo "::set-output name=release_exists::false"
+          fi
+
+      - name: Set should_proceed output
+        id: set_should_proceed
+        run: |
+          if [ "${{ steps.check_release.outputs.release_exists }}" == "false" ]; then
+            echo "::set-output name=should_proceed::true"
+          else
+            echo "::set-output name=should_proceed::false"
+          fi

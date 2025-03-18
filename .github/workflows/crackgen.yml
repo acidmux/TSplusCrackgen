@@ -1,0 +1,247 @@
+name: TSplus Update and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'TSplus version to process'
+        required: false
+        default: ''
+  workflow_call:
+    inputs:
+      version:
+        description: 'TSplus version to process'
+        required: false
+        type: string
+  schedule:
+    - cron:  '30 6,18 * * *' # Run every day at 6:30 AM and 6:30 PM UTC ~ IST 12:00 PM and 12:00 AM
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-for-updates:
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      should_proceed: ${{ steps.check_requirements.outputs.should_proceed }}
+      version: ${{ steps.get_version.outputs.latest_version }}
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+      
+    - name: 'Get TSplus Latest Version'
+      id: get_version
+      shell: bash
+      run: |
+        LATEST_VERSION=$(curl -s 'https://dl-files.com/data/latestversion.txt')
+        echo "Latest Version: $LATEST_VERSION"
+        echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
+        echo "latest_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+        
+    - name: 'Check if release exists'
+      id: check_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ steps.get_version.outputs.latest_version }}
+      shell: bash
+      run: |
+        version=$VERSION
+        echo "Checking if release exists for version: $version"
+        
+        # Install GitHub CLI if not already installed
+        if ! command -v gh &> /dev/null; then
+          echo "Installing GitHub CLI..."
+          type -p curl >/dev/null || apt install curl -y
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
+        fi
+        
+        # No need to authenticate explicitly - GITHUB_TOKEN will be used automatically
+        
+        release_exists=false
+        if gh release view "v$version" --repo "$GITHUB_REPOSITORY" 2>/dev/null; then
+          release_exists=true
+          echo "Release for version $version already exists"
+        else
+          echo "No release found for version $version"
+        fi
+        
+        echo "release_exists=$release_exists" >> $GITHUB_OUTPUT
+        
+        # Always exit with success code
+        exit 0
+        
+    - name: 'Check for running Patch and Release workflows'
+      id: check_running_workflows
+      if: ${{ steps.check_release.outputs.release_exists == 'false' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        echo "Checking for running Patch and release workflows..."
+        
+        # Query workflows by name and status
+        running_workflows=$(gh api \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/$GITHUB_REPOSITORY/actions/runs?status=in_progress&event=workflow_dispatch" | \
+          jq '.workflow_runs[] | select(.name=="TSplus Update and Release") | .id' | wc -l)
+        
+        echo "Found $running_workflows running workflows"
+        
+        if [ "$running_workflows" -gt 1 ]; then
+          echo "A Patch and release workflow is already running. Skipping."
+          echo "workflow_running=true" >> $GITHUB_OUTPUT
+        else
+          echo "No running Patch and release workflow found. Proceeding."
+          echo "workflow_running=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: 'Determine if we should proceed'
+      id: check_requirements
+      run: |
+        # Determine if direct patch command was issued or if update check passed
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ] || [ "${{ github.event_name }}" == "workflow_call" ]; then
+          echo "Direct workflow trigger - proceeding with patch"
+          echo "should_proceed=true" >> $GITHUB_OUTPUT
+        elif [ "${{ steps.check_release.outputs.release_exists }}" == "false" ] && [ "${{ steps.check_running_workflows.outputs.workflow_running }}" == "false" ]; then
+          echo "New version detected and no workflow running - proceeding with patch"
+          echo "should_proceed=true" >> $GITHUB_OUTPUT
+        else
+          echo "No need to proceed with patch"
+          echo "should_proceed=false" >> $GITHUB_OUTPUT
+        fi
+  
+  install-patch-and-release:
+    needs: check-for-updates
+    if: ${{ needs.check-for-updates.outputs.should_proceed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' }}
+    runs-on: windows-latest
+    environment: dev
+    permissions:
+      contents: write
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+      
+    - name: 'Setup .NET 7'
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
+      
+    - name: 'Setup Qatch'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/install-qatch.ps1
+    
+    - name: 'Get Latest Version'
+      shell: pwsh
+      env:
+        SPECIFIED_VERSION: ${{ inputs.version || needs.check-for-updates.outputs.version }}
+      run: |
+        # If version is specified from workflow dispatch or workflow call, use that
+        if ($env:SPECIFIED_VERSION) {
+          echo "TSPLUS_VERSION=$($env:SPECIFIED_VERSION)" >> $env:GITHUB_ENV
+          Write-Host "Using specified version: $($env:SPECIFIED_VERSION)"
+        } else {
+          # Otherwise fetch latest version from server
+          . ${{ github.workspace }}/.github/scripts/get-latest-version.ps1
+        }
+    
+    - name: 'Download TSplus Setup'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/download-tsplus.ps1
+    
+    - name: 'Install TSplus'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/install-tsplus.ps1
+        
+    - name: 'Verify Installation Files'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/verify-installation.ps1
+    
+    - name: 'Stop Services'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/stop-services.ps1
+    
+    - name: 'Block TSplus Activation Servers'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}\.github\scripts\tsplus-firewall-block.ps1
+      
+    - name: 'Prepare Working Files'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/prepare-work-files.ps1
+        
+    - name: 'Apply Binary Patch'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/apply-binary-patch.ps1
+
+    - name: 'Apply Integrity Check Patch'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/apply-integrity-check-patch.ps1
+
+    - name: 'Apply OneLicense Patch'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/apply-onelicense-patch.ps1
+
+    - name: 'Archive Distribution Bundle'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/archive-dist-bundle.ps1
+        
+    - name: 'Create GitHub Release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/create-release.ps1
+        
+    - name: 'Upload Setup to Release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
+      run: |
+        $tag = "$(Get-Content -Path $env:RUNNER_TEMP/release_tag.txt)"
+        $setupFile = $env:TSPLUS_SETUP_PATH
+        Write-Host "Uploading installer to release tag: $tag"
+        Write-Host "Installer file: $setupFile"
+        # Upload the installer with the standardized name
+        gh release upload $tag "$setupFile#Setup-TSplus.exe" --clobber
+
+    - name: 'Copy Patched Files Back'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/copy-files-back.ps1
+
+    - name: 'Start Services'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/start-services.ps1
+        
+    - name: 'Verify Patched Files'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/verify-patched-installation.ps1
+        
+    - name: 'Unblock TSplus Activation Servers'
+      shell: pwsh
+      if: always()  # Run even if previous steps fail
+      run: |
+        . ${{ github.workspace }}\.github\scripts\tsplus-firewall-unblock.ps1
