@@ -213,6 +213,22 @@ jobs:
       run: |
         . ${{ github.workspace }}/.github/scripts/create-release.ps1
         
+    - name: 'Generate License Template'
+      shell: pwsh
+      run: |
+        . ${{ github.workspace }}/.github/scripts/create-license-template.ps1
+        
+    - name: 'Upload License Template to Release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
+      run: |
+        $tag = "$(Get-Content -Path $env:RUNNER_TEMP/release_tag.txt)"
+        $licenseFile = Join-Path $env:RUNNER_TEMP "license.lic"
+        Write-Host "Uploading license template to release tag: $tag"
+        Write-Host "License file: $licenseFile"
+        gh release upload $tag "$licenseFile#license.lic" --clobber
+        
     - name: 'Upload Setup to Release'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
