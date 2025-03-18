@@ -140,7 +140,7 @@ jobs:
     - name: 'Setup Qatch'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/install-qatch.ps1
+        . ${{ github.workspace }}/scripts/install-qatch.ps1
     
     - name: 'Get Latest Version'
       shell: pwsh
@@ -153,70 +153,70 @@ jobs:
           Write-Host "Using specified version: $($env:SPECIFIED_VERSION)"
         } else {
           # Otherwise fetch latest version from server
-          . ${{ github.workspace }}/.github/scripts/get-latest-version.ps1
+          . ${{ github.workspace }}/scripts/get-latest-version.ps1
         }
     
     - name: 'Download TSplus Setup'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/download-tsplus.ps1
+        . ${{ github.workspace }}/scripts/download-tsplus.ps1
     
     - name: 'Install TSplus'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/install-tsplus.ps1
+        . ${{ github.workspace }}/scripts/install-tsplus.ps1
         
     - name: 'Verify Installation Files'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/verify-installation.ps1
+        . ${{ github.workspace }}/scripts/verify-installation.ps1
     
     - name: 'Stop Services'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/stop-services.ps1
+        . ${{ github.workspace }}/scripts/stop-services.ps1
     
     - name: 'Block TSplus Activation Servers'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}\.github\scripts\tsplus-firewall-block.ps1
+        . ${{ github.workspace }}/scripts/tsplus-firewall-block.ps1
       
     - name: 'Prepare Working Files'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/prepare-work-files.ps1
+        . ${{ github.workspace }}/scripts/prepare-work-files.ps1
         
     - name: 'Apply Binary Patch'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/apply-binary-patch.ps1
+        . ${{ github.workspace }}/scripts/apply-binary-patch.ps1
 
     - name: 'Apply Integrity Check Patch'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/apply-integrity-check-patch.ps1
+        . ${{ github.workspace }}/scripts/apply-integrity-check-patch.ps1
 
     - name: 'Apply OneLicense Patch'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/apply-onelicense-patch.ps1
+        . ${{ github.workspace }}/scripts/apply-onelicense-patch.ps1
 
     - name: 'Archive Distribution Bundle'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/archive-dist-bundle.ps1
+        . ${{ github.workspace }}/scripts/archive-dist-bundle.ps1
         
     - name: 'Create GitHub Release'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/create-release.ps1
+        . ${{ github.workspace }}/scripts/create-release.ps1
         
     - name: 'Generate License Template'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/create-license-template.ps1
+        . ${{ github.workspace }}/scripts/create-license-template.ps1
         
     - name: 'Upload License Template to Release'
       env:
@@ -244,20 +244,20 @@ jobs:
     - name: 'Copy Patched Files Back'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/copy-files-back.ps1
+        . ${{ github.workspace }}/scripts/copy-files-back.ps1
 
     - name: 'Start Services'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/start-services.ps1
+        . ${{ github.workspace }}/scripts/start-services.ps1
         
     - name: 'Verify Patched Files'
       shell: pwsh
       run: |
-        . ${{ github.workspace }}/.github/scripts/verify-patched-installation.ps1
+        . ${{ github.workspace }}/scripts/verify-patched-installation.ps1
         
     - name: 'Unblock TSplus Activation Servers'
       shell: pwsh
       if: always()  # Run even if previous steps fail
       run: |
-        . ${{ github.workspace }}\.github\scripts\tsplus-firewall-unblock.ps1
+        . ${{ github.workspace }}/scripts/tsplus-firewall-unblock.ps1

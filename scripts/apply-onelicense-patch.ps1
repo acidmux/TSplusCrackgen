@@ -1,7 +1,7 @@
 Write-Host "Applying OneLicense patch..."
 
 # Source file location
-$sourceFile = Join-Path $PSScriptRoot "..\assets\OneLicense.dll"
+$sourceFile = Join-Path $PSScriptRoot "..\..\assets\OneLicense.dll"
 
 # Target location in work directory
 $targetFile = Join-Path $env:TSPLUS_WORKDIR "OneLicense.dll"

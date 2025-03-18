@@ -19,7 +19,7 @@ Write-Host "Using working directory: $workDir"
 # IntegrityCheckPatch script
 $targetFile1 = Join-Path $workDir "TwoFactor.Admin.exe"
 $targetFile2 = Join-Path $workDir "APSC.exe"
-$binDir = "$env:GITHUB_WORKSPACE\.github\bin"
+$binDir = "$env:GITHUB_WORKSPACE\bin"
 
 try {
     # Verify files exist
